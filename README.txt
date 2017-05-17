@@ -41,7 +41,7 @@ List of Modules and Their Functionality
 
 --- mapper.py ---
 
-mappper.py implements both the map and shuffle phase. The shuffle phase is implemented indirectly by importing the Shuffle class from shuffle.py. The main function is map().
+mapper.py implements both the map and shuffle phase. The shuffle phase is implemented indirectly by importing the Shuffle class from shuffle.py. The main function is map().
 
 map() - Read input data and process those inputs according to the specified map function.
 
