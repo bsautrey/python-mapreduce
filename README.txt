@@ -25,7 +25,7 @@ v) Downsampling is built into the system for testing purposes. There will often 
 
 There are three important packages that do much to simplify the design and implementation of this system:
 
-i) RPyC (https://rpyc.readthedocs.io/en/latest/) - RPyC implements RPCs in Python. It is used for issuing commands to each machine in the cluster. Specifically, it is used to start and stop "cluster servers" on each machine, essentailly Python processes running the Process class from process.py.
+i) RPyC (https://rpyc.readthedocs.io/en/latest/) - RPyC implements RPCs in Python. It is used for issuing commands to each machine in the cluster. For example, it is used to start and stop "cluster servers" on each machine, check for dirs, create dirs, remove dirs, etc. All of this can be done across all cluster machines in a manner that is very similar to programming in Python on a single machine, thanks to RPyC.
 
 ii) Linux Screen (https://www.gnu.org/software/screen/manual/screen.html) - Screen is a window management utility. It is used here to house each cluster server and permit interactivity. For example, if one uses print statements in their mapreduce functions for debugging, you can attach to a screen and see the print statements execute for that cluster server and then detach when you are done. An extention of screen is used (called "multiscreen") that allows any user with access to that machine to attach to the screen session.
 
