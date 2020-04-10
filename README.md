@@ -298,4 +298,4 @@ File transfers are handled by a separate collections of tools, not included in t
 
 ## How to setup MR cluster?
 
-All instructions with examples can be found in[INSTALL.md](INSTALL.md)file.
+All instructions with examples can be found in [INSTALL.md](INSTALL.md) file.
