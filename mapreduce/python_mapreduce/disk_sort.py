@@ -1,16 +1,14 @@
 # disk_sort.py is a disk-based merge sort for large datasets.
 
-import heapq,uuid,os,cPickle,sys
+import heapq, uuid, os, cPickle, sys, json
 from math import fmod
-
-import ujson
 
 from disk_list import DiskList
 from configs_parser import get_configs
 
 
-class DiskSort():
-    
+class DiskSort:
+
     def __init__(self):
         # configs
         configs = get_configs(self.__module__)
@@ -18,7 +16,7 @@ class DiskSort():
         self.max_number_of_bytes_in_memory = configs['max_number_of_bytes_in_memory']
         self.number_of_servers_per_location = configs['number_of_servers_per_location']
         self.max_number_items = None
-        
+
         # shared references
         self.number_items = 0
         self.current_list = []
@@ -28,40 +26,40 @@ class DiskSort():
         self.write_mode = True
         self.finished = False
         self.file = None
-        
-    def append(self,item):
-        heapq.heappush(self.current_list,item)
+
+    def append(self, item):
+        heapq.heappush(self.current_list, item)
         self._get_max_number_items(item)
         self.number_items = self.number_items + 1
-        if fmod(self.number_items,self.max_number_items) == 0:
+        if fmod(self.number_items, self.max_number_items) == 0:
             self._reset()
-        
-    def next_group(self,disk_based=False):
+
+    def next_group(self, disk_based=False):
         group = []
-        
+
         if disk_based:
             group = DiskList()
-        
+
         if self.write_mode:
             self._reset()
-            
+
             # initialize files
             files = []
             for fn in self.file_names:
                 df = DeserializedFile(fn)
                 files.append(df)
-                
+
             # initialize merge
             self.file = heapq.merge(*files)
-            
+
             # initialize first item
             self.current_item = self.file.next()
-            
+
             self.write_mode = False
-            
+
         elif self.finished:
             raise StopIteration
-        
+
         item = self.current_item
         while item[0] == self.current_item[0]:
             group.append(item)
@@ -70,43 +68,48 @@ class DiskSort():
             except StopIteration:
                 self.finished = True
                 break
-  
+
         self.current_item = item
         return group
-            
+
     def _reset(self):
         self._write()
         self.current_list = []
-        
+
     def _get_file_reference(self):
-        file_name = self.working_dir +'/SORT_'+str(uuid.uuid4())+'.data'
-        file = open(file_name,'w')
-        return file_name,file
-        
+        file_name = self.working_dir + '/SORT_' + str(uuid.uuid4()) + '.data'
+        file = open(file_name, 'w')
+        return file_name, file
+
     def _write(self):
-        file_name,file = self._get_file_reference()
+        file_name, file = self._get_file_reference()
         while True:
             try:
                 item = heapq.heappop(self.current_list)
-                s = ujson.dumps(item)
-                file.write(s+'\n')
+                s = json.dumps(item)
+                file.write(s + '\n')
             except IndexError:
                 break
-                
+
         self.file_names.append(file_name)
+        file.flush()
+        os.fsync(file)
         file.close()
-    
-    def _get_max_number_items(self,item):
+
+    def _get_max_number_items(self, item):
         flag = False
-        
+
+        # create a small sample of item sizes
         l = len(self.item_sizes)
         if l < 250:
             flag = True
-            
-        elif fmod(self.number_items,250000) == 0:
-            del(self.item_sizes[0])
+
+        # every so often refresh the sample
+        elif fmod(self.number_items, 250000) == 0:
+            del (self.item_sizes[0])
             flag = True
-            
+
+        # add an item to the sample
         if flag:
             s = cPickle.dumps(item)
             size = sys.getsizeof(s)
@@ -114,31 +117,32 @@ class DiskSort():
             self.item_sizes.sort(reverse=True)
             largest_items = self.item_sizes[0:250]
             s = sum(largest_items)
-            l  = float(len(largest_items))
-            mean_size = s/l
-            self.max_number_items = int(self.max_number_of_bytes_in_memory/(mean_size*self.number_of_servers_per_location))
+            l = float(len(largest_items))
+            mean_size = s / l
+            self.max_number_items = max(1, int(
+                self.max_number_of_bytes_in_memory / (mean_size * self.number_of_servers_per_location)))
+            # ^this^ can be 0 when each item in the reduce is very large, e.g. 100s-1000s MB. results in fmod(0,0) ==> ValueError
 
 
 # create an iterable object, from a file, that returns deserialized items.      
-class DeserializedFile():
-    
-    def __init__(self,file_name):
+class DeserializedFile:
+
+    def __init__(self, file_name):
         self.file_name = file_name
         self.file = open(file_name)
-        
+
     def __iter__(self):
         return self
-        
-    def next(self):  
+
+    def next(self):
         try:
             s = self.file.next()
-            item = ujson.loads(s)
+            item = json.loads(s)
             return item
         except StopIteration:
             self._delete()
             raise StopIteration
-            
+
     def _delete(self):
         self.file.close()
         os.remove(self.file_name)
-        
