@@ -243,7 +243,7 @@ class MapFunctions():
     def __init__(self,map_function_name):
         if map_function_name == 'my_map_function':
             self.map_function = my_map_function
-		elif map_function_name == 'my_map_function_2':
+        elif map_function_name == 'my_map_function_2':
             self.map_function = my_map_function_2
 			
     def get_map_function(self):
